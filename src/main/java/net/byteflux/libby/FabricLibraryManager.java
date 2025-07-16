@@ -10,6 +10,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A runtime dependency manager for Fabric mods.
  */
@@ -29,7 +31,7 @@ public class FabricLibraryManager extends LibraryManager {
                                 ModContainer modContainer,
                                 String directoryName) {
         super(new FabricLogAdapter(logger), dataDirectory, directoryName);
-        this.modContainer = modContainer;
+        this.modContainer = requireNonNull(modContainer, "modContainer");
     }
 
     /**
