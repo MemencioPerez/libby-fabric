@@ -21,7 +21,6 @@ public class FabricLibraryManager extends LibraryManager {
     public FabricLibraryManager(Logger logger,
                                 Path dataDirectory,
                                 String directoryName) {
-
         super(new FabricLogAdapter(logger), dataDirectory, directoryName);
     }
 
@@ -32,7 +31,7 @@ public class FabricLibraryManager extends LibraryManager {
      * @param dataDirectory mod's data directory
      */
     public FabricLibraryManager(Logger logger,
-                                  Path dataDirectory) {
+                                Path dataDirectory) {
         this(logger, dataDirectory, "lib");
     }
 
