@@ -1,12 +1,15 @@
 package net.byteflux.libby;
 
 import net.byteflux.libby.logging.adapters.FabricLogAdapter;
+import net.byteflux.libby.classloader.URLClassLoaderHelper;
+import net.fabricmc.loader.impl.FabricLoaderImpl;
 import net.fabricmc.loader.api.ModContainer;
-import net.fabricmc.loader.impl.launch.FabricLauncherBase;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -16,6 +19,11 @@ import static java.util.Objects.requireNonNull;
  * A runtime dependency manager for Fabric mods.
  */
 public class FabricLibraryManager extends LibraryManager {
+    /**
+     * Mod container classpath helper
+     */
+    private final URLClassLoaderHelper classLoader;
+
     private final ModContainer modContainer;
 
     /**
@@ -31,7 +39,9 @@ public class FabricLibraryManager extends LibraryManager {
                                 ModContainer modContainer,
                                 String directoryName) {
         super(new FabricLogAdapter(logger), dataDirectory, directoryName);
+        boolean useCompatibilityClassLoader = FabricLoaderImpl.INSTANCE.getGameProvider().requiresUrlClassLoader() || Boolean.parseBoolean(System.getProperty("fabric.loader.useCompatibilityClassLoader", "false"));
         this.modContainer = requireNonNull(modContainer, "modContainer");
+        classLoader = new URLClassLoaderHelper(useCompatibilityClassLoader ? (URLClassLoader) modContainer.getClass().getClassLoader() : (URLClassLoader) getDynamicURLClassLoader(modContainer.getClass().getClassLoader()), this);
     }
 
     /**
@@ -54,7 +64,7 @@ public class FabricLibraryManager extends LibraryManager {
      */
     @Override
     protected void addToClasspath(Path file) {
-        FabricLauncherBase.getLauncher().addToClassPath(file);
+        classLoader.addToClasspath(file);
     }
 
     @Override
@@ -68,5 +78,15 @@ public class FabricLibraryManager extends LibraryManager {
                     }
                 })
                 .orElse(null);
+    }
+
+    private ClassLoader getDynamicURLClassLoader(ClassLoader classLoader) {
+        try {
+            Field urlLoaderField = classLoader.getClass().getDeclaredField("urlLoader");
+            urlLoaderField.setAccessible(true);
+            return (ClassLoader) urlLoaderField.get(classLoader);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
